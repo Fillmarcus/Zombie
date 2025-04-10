@@ -1,0 +1,203 @@
+import tkinter as tk
+from tkinter import messagebox
+import pygame  # Для работы с музыкой
+import pickle  # Для сохранения состояния игры
+from PIL import Image, ImageTk  # Для работы с изображениями
+
+class DarkFantasyGame:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Зомби-апокалипсис: Тень Смерти")
+        self.root.geometry("800x600")
+        self.root.config(bg="black")
+
+        # Инициализация pygame для музыки
+        pygame.mixer.init()
+        pygame.mixer.music.load("ambient_music.mp3")  # Путь к вашему музыкальному файлу
+        pygame.mixer.music.set_volume(0.2)  # Регулировка громкости
+        pygame.mixer.music.play(-1, 0.0)  # Воспроизведение музыки в цикле
+
+        # Атмосфера
+        self.bg_image = tk.PhotoImage(file="background.png")  # Фон для игры в стиле дарк фэнтези
+        self.bg_label = tk.Label(self.root, image=self.bg_image)
+        self.bg_label.place(relwidth=1, relheight=1)
+
+        self.title_font = ("Arial", 18, "bold")
+        self.text_font = ("Arial", 14, "normal")
+
+        # Загрузка изображений персонажей
+        self.nastya_img = Image.open("nastya_image.png")  # Настя
+        self.nastya_img = self.nastya_img.resize((100, 100))
+        self.nastya_photo = ImageTk.PhotoImage(self.nastya_img)
+
+        self.masha_img = Image.open("masha_image.png")  # Маша
+        self.masha_img = self.masha_img.resize((100, 100))
+        self.masha_photo = ImageTk.PhotoImage(self.masha_img)
+
+        self.alexey_img = Image.open("alexey_image.png")  # Алексей
+        self.alexey_img = self.alexey_img.resize((100, 100))
+        self.alexey_photo = ImageTk.PhotoImage(self.alexey_img)
+
+        # Главное меню
+        self.main_menu()
+
+    def main_menu(self):
+        # Главное меню
+        self.clear_window()
+
+        title_label = tk.Label(self.root, text="Зомби-апокалипсис: Тень Смерти", fg="white", bg="black", font=("Arial", 24, "bold"))
+        title_label.pack(pady=50)
+
+        play_button = tk.Button(self.root, text="Играть", fg="black", bg="gray", font=("Arial", 18, "bold"), command=self.start_game)
+        play_button.pack(pady=20)
+
+        reset_button = tk.Button(self.root, text="Сбросить", fg="black", bg="gray", font=("Arial", 18, "bold"), command=self.reset_game)
+        reset_button.pack(pady=20)
+
+    def clear_window(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+    def start_game(self):
+        self.load_game()  # Загружаем состояние игры, если оно существует
+        if self.story_progress == 0:  # Если это начало игры
+            self.create_game_widgets()
+            self.show_intro()
+        else:
+            self.load_saved_story()
+
+    def reset_game(self):
+        self.story_progress = 0
+        self.character_name = "Настя"
+        self.sister_name = "Маша"
+        self.main_menu()
+
+    def create_game_widgets(self):
+        # Текст для вывода истории
+        self.text_label = tk.Label(self.root, text="", fg="white", bg="black", font=self.text_font, wraplength=750, justify="center")
+        self.text_label.pack(pady=150)
+
+        # Картинка персонажа
+        self.character_image_label = tk.Label(self.root, image=None, bg="black")
+        self.character_image_label.pack()
+
+        # Кнопки выбора
+        self.option1_button = tk.Button(self.root, text="Выбор 1", fg="black", bg="gray", font=self.title_font, command=self.option1)
+        self.option2_button = tk.Button(self.root, text="Выбор 2", fg="black", bg="gray", font=self.title_font, command=self.option2)
+        self.option1_button.pack(pady=20)
+        self.option2_button.pack(pady=20)
+
+    def save_game(self):
+        # Сохранение прогресса игры в файл
+        with open("save_game.pkl", "wb") as file:
+            pickle.dump(self.__dict__, file)
+
+    def load_game(self):
+        # Загрузка прогресса игры из файла
+        try:
+            with open("save_game.pkl", "rb") as file:
+                game_data = pickle.load(file)
+                self.__dict__.update(game_data)
+        except FileNotFoundError:
+            self.story_progress = 0  # Если файл сохранения не найден, начинаем заново
+
+    def show_intro(self):
+        intro_text = (
+            "Мрак поглотил мир. Город стал полем битвы между жизнью и смертью, "
+            "где зомби охотятся на тех, кто ещё дышит. Ты — Настя, и с тобой твоя младшая сестра Маша. "
+            "Вы выживаете в мире, который уже не принадлежит людям.\n\n"
+            "Выхода нет, но ты не сдаёшься. Ты обязана защитить Машу и найти место, где можно спрятаться от этого кошмара.\n"
+            "Что вы будете делать?"
+        )
+        self.text_label.config(text=intro_text)
+        self.character_image_label.config(image=self.nastya_photo)
+        self.option1_button.config(text="Попытаться выбраться из города.", command=self.escape_city)
+        self.option2_button.config(text="Остаться и надеяться на спасение.", command=self.wait_for_help)
+
+    def escape_city(self):
+        self.story_progress = 1
+        escape_text = (
+            "Ты решаешь, что нельзя оставаться здесь. Вам нужно уйти, прежде чем зомби найдут вас. "
+            "Ты быстро собираешь вещи, схватываешь Машу за руку и направляешься к выходу.\n\n"
+            "Но как только вы выходите на улицу, перед вами появляется толпа зомби. Маша испуганно кричит."
+        )
+        self.text_label.config(text=escape_text)
+        self.character_image_label.config(image=self.nastya_photo)
+        self.option1_button.config(text="Схватить оружие и сразиться с ними.", command=self.fight)
+        self.option2_button.config(text="Бежать через тёмные переулки.", command=self.run_through_alley)
+
+    def wait_for_help(self):
+        self.story_progress = 2
+        wait_text = (
+            "Вы решаете остаться и надеяться, что кто-то придёт на помощь. Скрываетесь в доме и пытаетесь не делать шума.\n"
+            "Но вскоре вы слышите шаги, и перед вами появляется один из заражённых — Алексей, человек, которого вы знали раньше.\n\n"
+            "Он приближается к вам, его лицо искажено ужасом и голодом.\n"
+        )
+        self.text_label.config(text=wait_text)
+        self.character_image_label.config(image=self.alexey_photo)
+        self.option1_button.config(text="Попытаться поговорить с ним.", command=self.talk_to_igor)
+        self.option2_button.config(text="Убежать в другую комнату.", command=self.run_away)
+
+    def load_saved_story(self):
+        # Загружать продолжение игры из сохраненного состояния
+        if self.story_progress == 1:
+            self.escape_city()
+        elif self.story_progress == 2:
+            self.wait_for_help()
+
+    def fight(self):
+        fight_text = (
+            "Ты хватаешь оружие и вступаешь в бой. Но зомби слишком много. Вскоре одна из тварей хватает тебя за руку...\n\n"
+            "Маша, увидев это, пытается помочь, но ей не удаётся. Настя, ты падаешь в бою.\n"
+            "Маша в панике пытается выбраться одна, но зомби начинают окружать её."
+        )
+        self.text_label.config(text=fight_text)
+        self.character_image_label.config(image=self.nastya_photo)
+        self.option1_button.config(state="disabled")
+        self.option2_button.config(state="disabled")
+        messagebox.showinfo("Конец игры", "Вы погибли. Конец игры.")
+        self.save_game()
+        self.root.quit()
+
+    def run_through_alley(self):
+        run_text = (
+            "Вы выбираетесь в тёмные переулки, пытаясь избежать зомби. Но вскоре вас замечают.\n"
+            "Бегство без оружия оказывается не таким успешным, как вы думали. Зомби догоняют вас."
+        )
+        self.text_label.config(text=run_text)
+        self.character_image_label.config(image=self.nastya_photo)
+        self.option1_button.config(state="disabled")
+        self.option2_button.config(state="disabled")
+        messagebox.showinfo("Конец игры", "Вы погибли. Конец игры.")
+        self.save_game()
+        self.root.quit()
+
+    def talk_to_igor(self):
+        talk_text = (
+            "Ты пытаешься поговорить с Алексеем, но его разум полностью затмён вирусом. Он нападает на тебя!\n\n"
+            "Ты едва успеваешь отразить его атаку, но в этот момент твоя сестра бросается в бой, пытаясь защитить тебя."
+        )
+        self.text_label.config(text=talk_text)
+        self.character_image_label.config(image=self.alexey_photo)
+        self.option1_button.config(state="disabled")
+        self.option2_button.config(state="disabled")
+        messagebox.showinfo("Конец игры", "Маша погибает, и ты теряешь свою последнюю надежду. Конец игры.")
+        self.save_game()
+        self.root.quit()
+
+    def run_away(self):
+        run_away_text = (
+            "Вы убегаете в другую комнату, но Алексей не отступает. Он продолжает преследовать вас. "
+            "В конце концов он находит вас, и это становится вашим концом."
+        )
+        self.text_label.config(text=run_away_text)
+        self.character_image_label.config(image=self.alexey_photo)
+        self.option1_button.config(state="disabled")
+        self.option2_button.config(state="disabled")
+        messagebox.showinfo("Конец игры", "Вы погибли. Конец игры.")
+        self.save_game()
+        self.root.quit()
+
+root = tk.Tk()
+game = DarkFantasyGame(root)
+root.mainloop()
